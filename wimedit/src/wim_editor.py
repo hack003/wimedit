@@ -428,7 +428,7 @@ class WimEditor:
 
     # ---------- 横幅通知（非阻塞，自动消失） ----------
     def _toast(self, msg, kind="info", duration_ms=2500):
-        """统一横幅通知：优先路由到 wim_tool 的统一横幅；若无回调则退回到悬浮 Toplevel 横幅。
+        """统一横幅通知：优先路由到 wim_edit 的统一横幅；若无回调则退回到悬浮 Toplevel 横幅。
         默认显示时间 2.5 秒。
 
         kind: "info" (蓝色) / "success" (绿色) / "warning" (橙色) / "error" (红色)

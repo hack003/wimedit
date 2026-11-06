@@ -3,7 +3,7 @@
 程序自动更新模块
 功能：检查更新、下载新版本、自动替换运行中的程序
 
-版本信息来源：Gitee Releases（https://gitee.com/hack003/wim-tools/releases）
+版本信息来源：Gitee Releases（https://gitee.com/hack003/wimedit/releases）
   - 发布标签 tag_name（如 v1.0.3.27）作为版本号
   - 发布说明 body 作为更新日志
   - 发布附件 assets 中的 exe 作为下载地址
@@ -50,7 +50,7 @@ if _ssl_context is not None:
 
 # Gitee 仓库信息（发布版来源）
 GITEE_OWNER = "hack003"
-GITEE_REPO = "wim-tools"
+GITEE_REPO = "wimedit"
 
 # Gitee Releases API（取最新发布）
 RELEASES_API_URL = (
@@ -61,7 +61,7 @@ RELEASES_API_URL = (
 RELEASES_PAGE_URL = "https://gitee.com/" + GITEE_OWNER + "/" + GITEE_REPO + "/releases"
 
 # 发布附件中可执行文件的名称（找不到时退化为匹配 .exe 后缀）
-EXPECTED_ASSET_NAME = "WIMTool.exe"
+EXPECTED_ASSET_NAME = "WIMEdit.exe"
 
 # 程序版本号（由 app_version.py 统一管理，改版本号请修改 app_version.py）
 from app_version import VERSION_STR as APP_VERSION
@@ -386,7 +386,7 @@ def _get_app_exe_path():
     if getattr(sys, "frozen", False):
         return sys.executable
     base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    return os.path.join(base, "WIMTool.exe")
+    return os.path.join(base, "WIMEdit.exe")
 
 
 def _generate_updater_script(new_exe_path, old_exe_path, temp_dir):
@@ -408,7 +408,7 @@ def _generate_updater_script(new_exe_path, old_exe_path, temp_dir):
     """
     old_pid = os.getpid()
     system_temp = os.environ.get("TEMP") or os.environ.get("TMP") or os.path.dirname(temp_dir)
-    bat_name = "_wim_tool_updater_" + str(old_pid) + "_" + str(int(time.time() * 1000)) + ".bat"
+    bat_name = "_wimedit_updater_" + str(old_pid) + "_" + str(int(time.time() * 1000)) + ".bat"
     updater_bat = os.path.join(system_temp, bat_name)
 
     old_dir = os.path.dirname(old_exe_path)
@@ -542,9 +542,9 @@ def download_and_apply_update(progress_callback=None, log_callback=None):
 
     # 准备临时下载目录（放到系统 %TEMP%，避免污染程序目录）
     system_temp = os.environ.get("TEMP") or os.environ.get("TMP") or os.path.dirname(_get_app_exe_path())
-    temp_dir = os.path.join(system_temp, "_wim_update_temp_" + str(int(time.time())))
+    temp_dir = os.path.join(system_temp, "_wimedit_update_temp_" + str(int(time.time())))
     os.makedirs(temp_dir, exist_ok=True)
-    new_exe = os.path.join(temp_dir, "WIMTool.new.exe")
+    new_exe = os.path.join(temp_dir, "WIMEdit.new.exe")
 
     try:
         _download_file(url, new_exe, progress_callback=progress_callback)

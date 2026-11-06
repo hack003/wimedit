@@ -13,25 +13,25 @@ from pathlib import Path
 # 项目根目录（build.py 所在目录）
 PROJECT_DIR = Path(__file__).parent.absolute()
 BUILD_DIR = PROJECT_DIR / "build_output"
-SPEC_FILE = BUILD_DIR / "wim_tool.spec"
+SPEC_FILE = BUILD_DIR / "wim_edit.spec"
 
 # 源码与资源根目录
-SOURCE_DIR = PROJECT_DIR / "wimtool"
+SOURCE_DIR = PROJECT_DIR / "wimedit"
 
 # 输出目录设置为 D 盘
 DIST_DIR = Path("D:/")
 
 # 主入口脚本
-MAIN_SCRIPT = PROJECT_DIR / "wim_tool.py"
+MAIN_SCRIPT = PROJECT_DIR / "wim_edit.py"
 
 # 需要打包的 data 文件夹
 DATA_DIR = SOURCE_DIR / "data"
 
 # 输出文件名
-APP_NAME = "WIMTool"
+APP_NAME = "WIMEdit"
 
 # Manifest 文件（请求管理员权限 + Windows 版本兼容声明 + 长路径支持 + 通用控件 v6 视觉样式）
-MANIFEST_FILE = SOURCE_DIR / "resources" / "wimtool.manifest"
+MANIFEST_FILE = SOURCE_DIR / "resources" / "wimedit.manifest"
 
 # 源码目录
 SRC_DIR = SOURCE_DIR / "src"
@@ -47,8 +47,8 @@ del _runpy, _app_ver_ns
 PRODUCT_NAME = "映像编辑辅助工具"
 COMPANY_NAME = "XuGuihong"
 COPYRIGHT = "Copyright © 2026 XuGuihong. All rights reserved."
-INTERNAL_NAME = "WIMTool"
-ORIGINAL_FILENAME = "WIMTool.exe"
+INTERNAL_NAME = "WIMEdit"
+ORIGINAL_FILENAME = "WIMEdit.exe"
 
 
 def check_dependencies():
@@ -282,7 +282,7 @@ def build():
     print("=" * 60)
 
     global VERSION, VERSION_STR
-    print(f"当前版本号: {VERSION_STR}（如需修改请编辑 wimtool/src/app_version.py）")
+    print(f"当前版本号: {VERSION_STR}（如需修改请编辑 wimedit/src/app_version.py）")
     
     # 清理旧的构建文件
     if BUILD_DIR.exists():
@@ -339,7 +339,7 @@ def build():
         print()
         print("打包结构:")
         print(f"  {BUILD_DIR}/")
-        print(f"  └── wim_tool.spec       <- PyInstaller 配置文件")
+        print(f"  └── wim_edit.spec       <- PyInstaller 配置文件")
         print(f"  {DIST_DIR}/")
         print(f"  └── {APP_NAME}.exe      <- 单文件可执行程序")
         print()

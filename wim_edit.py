@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 _root_dir = os.path.dirname(os.path.abspath(__file__))
-_src_dir = os.path.join(_root_dir, "wimtool", "src")
+_src_dir = os.path.join(_root_dir, "wimedit", "src")
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
@@ -39,7 +39,7 @@ else:
         UpdateChecker = None
 
 
-class WIMTool:
+class WIMEdit:
     update_checker: Optional["UpdateChecker"]
     editor: Optional["WimEditor"]
     boot_mgr: Optional["BootManager"]
@@ -51,12 +51,12 @@ class WIMTool:
 
     def __init__(self, root):
         self.root = root
-        self.root.title(f"映像编辑辅助工具 v{APP_VERSION}")
+        self.root.title(f"映像编辑辅助工具 WIMEdit v{APP_VERSION}")
         self.root.geometry(dpi_geometry(540, 470))
         self.root.minsize(px(540), px(470))
         self.root.resizable(True, True)
 
-        self.base_dir = os.path.join(_root_dir, "wimtool")
+        self.base_dir = os.path.join(_root_dir, "wimedit")
         self.data_dir = os.path.join(self.base_dir, "data")
         self.wimlib_exe = os.path.join(self.data_dir, "Wimlib", "wimlib-imagex.exe")
         self.dism_exe = os.path.join(self.data_dir, "DISM", "dism.exe")
@@ -872,7 +872,7 @@ def main():
     if not _ensure_admin():
         sys.exit(0)
     root = tk.Tk()
-    app = WIMTool(root)
+    app = WIMEdit(root)
     root.mainloop()
 
 

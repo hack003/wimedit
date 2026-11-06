@@ -1,16 +1,16 @@
 {
   "include": [
-    "wim_tool.py",
+    "wim_edit.py",
     "build.py",
-    "wimtool/src"
+    "wimedit/src"
   ],
   "exclude": [
     "**/__pycache__",
     "build_output",
-    "wimtool/data"
+    "wimedit/data"
   ],
   "extraPaths": [
-    "wimtool/src"
+    "wimedit/src"
   ],
   "pythonVersion": "3.8",
   "typeCheckingMode": "basic"

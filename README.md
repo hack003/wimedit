@@ -1,13 +1,13 @@
-# 映像编辑辅助工具（WIM Tool）
+# 映像编辑辅助工具（WIMEdit）
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D4.svg)](https://www.microsoft.com/windows)
-[![Version](https://img.shields.io/badge/Version-1.0.3.26-green.svg)](#)
+[![Version](https://img.shields.io/badge/Version-1.0.3.27-green.svg)](#)
 
 **映像编辑辅助工具** 是一款面向 Windows 系统维护人员的小型工具集，聚焦 WIM 映像的日常编辑处理，并附带 PE 启动测试与 BCD 引导管理功能。基于 **Python 3 + tkinter** 开发，内置 DISM、wimlib、7-Zip 等组件，打包为单文件 exe，免安装、开箱即用。
 
-国内项目地址：https://gitee.com/hack003/wim-tools
+国内项目地址：https://gitee.com/hack003/wimedit
 
 ---
 
@@ -47,19 +47,19 @@
 
 ### 方式一：使用发布版（推荐）
 
-前往 **[Gitee Releases](https://gitee.com/hack003/wim-tools/releases)** 下载最新版 `WIMTool.exe`，双击运行即可（会自动请求管理员权限）。
+前往 **[Gitee Releases](https://gitee.com/hack003/wimedit/releases)** 下载最新版 `WIMEdit.exe`，双击运行即可（会自动请求管理员权限）。
 
 程序为单文件分发，`data` 目录已打包进 exe，运行时自动解压到临时目录。
 
 ### 方式二：从源码运行
 
 ```bash
-git clone https://gitee.com/hack003/wim-tools.git
-cd wim-tools
-python wim_tool.py
+git clone https://gitee.com/hack003/wimedit.git
+cd wimedit
+python wim_edit.py
 ```
 
-> 源码运行时请保持根目录下 `wimtool/` 的相对位置不变，程序按相对路径加载 `wimtool/src`、`wimtool/data` 与 `wimtool/resources` 资源。
+> 源码运行时请保持根目录下 `wimedit/` 的相对位置不变，程序按相对路径加载 `wimedit/src`、`wimedit/data` 与 `wimedit/resources` 资源。
 
 ---
 
@@ -135,10 +135,10 @@ python wim_tool.py
 
 ```
 code-映像编辑辅助工具-v1.0.3.26/
-├── wim_tool.py                  # 主入口：窗口、Tab 容器、日志面板、横幅通知、关于页
+├── wim_edit.py                  # 主入口：窗口、Tab 容器、日志面板、横幅通知、关于页
 ├── build.py                     # PyInstaller 单文件打包脚本
 ├── build.bat                    # 打包入口（双击运行，可选）
-├── wimtool/                     # 源码与资源根目录
+├── wimedit/                     # 源码与资源根目录
 │   ├── src/
 │   │   ├── wim_editor.py        # 镜像编辑模块（DISM 挂载 / wimlib 优化与属性）
 │   │   ├── boot_test.py         # 启动测试模块（PE 加入启动菜单 / ISO 提取 / IsBoot 管理）
@@ -158,7 +158,7 @@ code-映像编辑辅助工具-v1.0.3.26/
 │   └── resources/
 │       ├── log_config.ini       # 日志级别配置
 │       ├── wim.ico              # 程序图标
-│       └── wimtool.manifest     # 管理员权限 + 系统兼容性清单
+│       └── wimedit.manifest     # 管理员权限 + 系统兼容性清单
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -170,15 +170,15 @@ code-映像编辑辅助工具-v1.0.3.26/
 
 双击根目录 `build.bat`（或执行 `python build.py`）即可打包：
 
-1. 读取 `wimtool/src/app_version.py` 中的版本号（**需手动修改，打包脚本不再自动 +1**）
+1. 读取 `wimedit/src/app_version.py` 中的版本号（**需手动修改，打包脚本不再自动 +1**）
 2. 清理 `build_output/` 并生成 `version.txt`（写入文件属性中的版本 / 版权 / 编译时间）
-3. 收集 `wimtool/data/` 与 `wimtool/resources/wim.ico` 作为内嵌资源，生成 `wim_tool.spec`
-4. 调用 PyInstaller 输出单文件 `D:\WIMTool.exe`
-5. 自动清理 `build_output/work` 与根目录、`wimtool/src` 下的 `__pycache__`
+3. 收集 `wimedit/data/` 与 `wimedit/resources/wim.ico` 作为内嵌资源，生成 `wim_edit.spec`
+4. 调用 PyInstaller 输出单文件 `D:\WIMEdit.exe`
+5. 自动清理 `build_output/work` 与根目录、`wimedit/src` 下的 `__pycache__`
 
 **打包依赖**：`pip install pyinstaller`（仅打包时需要，运行不需要）。
 
-**发布与更新**：打包完成后把 `D:\WIMTool.exe` 作为附件上传到 Gitee Releases，发布标签写成版本号（如 `v1.0.3.27`），发布说明填写更新内容。程序端的 `检查更新` 会直接读取该发布，标签号即版本号、说明即更新日志、附件即下载地址。
+**发布与更新**：打包完成后把 `D:\WIMEdit.exe` 作为附件上传到 Gitee Releases，发布标签写成版本号（如 `v1.0.3.27`），发布说明填写更新内容。程序端的 `检查更新` 会直接读取该发布，标签号即版本号、说明即更新日志、附件即下载地址。
 
 ---
 
