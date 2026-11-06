@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 打包输出
+build_output/
+dist/
+*.spec
+
+# 备份产物
+code-*.zip
+
+# 编辑器
+.vscode/
+.idea/
+*.user
+*.suo
+
+# 系统
+Thumbs.db
+.DS_Store
