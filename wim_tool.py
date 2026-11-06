@@ -7,31 +7,48 @@
 import os
 import sys
 import tkinter as tk
-import threading
 from tkinter import ttk, messagebox
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 _root_dir = os.path.dirname(os.path.abspath(__file__))
 _src_dir = os.path.join(_root_dir, "wimtool", "src")
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
-from dpi_utils import px, SCALE_RATIO, dpi_geometry, font_scaled, scaled_tuple
-
-from wim_editor import WimEditor
-from boot_manager import BootManager
-from boot_test import BootTest
-from app_version import VERSION_STR as APP_VERSION
-import logger_utils
-try:
+if TYPE_CHECKING:
+    from app_version import VERSION_STR as APP_VERSION
+    from boot_manager import BootManager
+    from boot_test import BootTest
+    from boot_utils import BootEnvironmentDetector
+    from dpi_utils import dpi_geometry, font_scaled, px
     from update import UpdateChecker
-    _HAS_UPDATE_MODULE = True
-except Exception:
-    _HAS_UPDATE_MODULE = False
-    UpdateChecker = None
+    from wim_editor import WimEditor
+    import logger_utils
+else:
+    from dpi_utils import dpi_geometry, font_scaled, px
+    from app_version import VERSION_STR as APP_VERSION
+    from boot_manager import BootManager
+    from boot_test import BootTest
+    from wim_editor import WimEditor
+    import logger_utils
+
+    try:
+        from update import UpdateChecker
+    except Exception:
+        UpdateChecker = None
 
 
 class WIMTool:
+    update_checker: Optional["UpdateChecker"]
+    editor: Optional["WimEditor"]
+    boot_mgr: Optional["BootManager"]
+    boot_test: Optional["BootTest"]
+    _toast_window: Optional[tk.Toplevel]
+    _toast_label: Optional[tk.Label]
+    _toast_after_id: Optional[str]
+    _boot_detector_lazy: Optional["BootEnvironmentDetector"]
+
     def __init__(self, root):
         self.root = root
         self.root.title(f"映像编辑辅助工具 v{APP_VERSION}")
@@ -47,7 +64,7 @@ class WIMTool:
 
         # 自动更新检查器
         self.update_checker = None
-        if _HAS_UPDATE_MODULE and UpdateChecker is not None:
+        if UpdateChecker is not None:
             try:
                 self.update_checker = UpdateChecker(
                     root=self.root,
@@ -273,8 +290,9 @@ class WIMTool:
         logger_utils.set_log_level(level_name)
         self._rerender_log_text()
 
-    def _on_global_level_changed(self):
-        level_name = self._global_level_var.get()
+    def _on_global_level_changed(self, level_name=None):
+        if level_name is None:
+            level_name = logger_utils.get_global_level_name()
         logger_utils.set_log_level(level_name)
         self._rerender_log_text()
 
@@ -300,18 +318,6 @@ class WIMTool:
         self.log_text.insert(tk.END, line + "\n")
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
-
-    def _log(self, msg, update_status=True):
-        """主日志输出：统一路由到 logger_utils.log。
-        logger_utils.log 会自行写入缓冲并调用 raw_append 追加到文本框。
-        """
-        logger_utils.log("app", "DEBUG", msg)
-        if update_status:
-            self._set_status(msg)
-        try:
-            self.root.update()
-        except Exception:
-            pass
 
     def _init_modules(self):
         # 先创建占位标签页，确保标签页显示
@@ -386,11 +392,12 @@ class WIMTool:
             icon_path=self._get_icon_path(),
         )
         self._log("镜像编辑模块加载完成")
+        return self.editor
 
     def _load_boot_mgr_tab(self):
         """延迟加载引导管理模块"""
         if self._boot_mgr_loaded:
-            return
+            return self.boot_mgr
         self._boot_mgr_loaded = True
         self._log("正在加载引导管理模块...")
         tab_frame = self._placeholder_tabs.get(2)
@@ -415,11 +422,12 @@ class WIMTool:
             boot_detector=self.boot_detector,
         )
         self._log("引导管理模块加载完成")
+        return self.boot_mgr
 
     def _load_boot_test_tab(self):
         """延迟加载启动测试模块"""
         if self._boot_test_loaded:
-            return
+            return self.boot_test
         self._boot_test_loaded = True
         self._log("正在加载启动测试模块...")
         tab_frame = self._placeholder_tabs.get(1)
@@ -446,14 +454,17 @@ class WIMTool:
             boot_detector=self.boot_detector,
         )
         self._log("启动测试模块加载完成")
+        return self.boot_test
 
     @property
-    def boot_detector(self):
+    def boot_detector(self) -> "BootEnvironmentDetector":
         """懒加载引导环境检测器。仅在首次访问（比如切到启动测试/引导管理标签）时才 import + 实例化。"""
-        if self._boot_detector_lazy is None:
+        detector = self._boot_detector_lazy
+        if detector is None:
             from boot_utils import BootEnvironmentDetector
-            self._boot_detector_lazy = BootEnvironmentDetector(log_callback=self._log)
-        return self._boot_detector_lazy
+            detector = BootEnvironmentDetector(log_callback=self._log)
+            self._boot_detector_lazy = detector
+        return detector
 
     def _on_tab_changed(self, event=None):
         tab_index = self.tab_control.index(self.tab_control.select())
@@ -463,10 +474,13 @@ class WIMTool:
             self._load_boot_test_tab()
         elif tab_index == 2:
             if not self._boot_mgr_loaded:
-                self._load_boot_mgr_tab()
-                self.root.after(100, self.boot_mgr._auto_load_bcd)
+                boot_mgr = self._load_boot_mgr_tab()
+                if boot_mgr is not None:
+                    self.root.after(100, boot_mgr._auto_load_bcd)
             else:
-                self.root.after(100, self.boot_mgr._refresh_bcd_list)
+                boot_mgr = self._load_boot_mgr_tab()
+                if boot_mgr is not None:
+                    self.root.after(100, boot_mgr._refresh_bcd_list)
         elif tab_index == 3 and not self._about_loaded:
             self._load_about_tab()
 
@@ -655,16 +669,18 @@ class WIMTool:
         }
         bg, fg = colors.get(kind, colors["info"])
 
-        if self._toast_window is None or not self._toast_window.winfo_exists():
+        toast_label = self._toast_label
+        toast_window = self._toast_window
+        if toast_window is None or not toast_window.winfo_exists():
             try:
-                self._toast_window = tk.Toplevel(self.root)
+                toast_window = tk.Toplevel(self.root)
             except Exception:
                 return
-            self._toast_window.overrideredirect(True)
-            self._toast_window.attributes("-topmost", True)
-            self._toast_window.attributes("-alpha", 0.95)
-            self._toast_label = tk.Label(
-                self._toast_window,
+            toast_window.overrideredirect(True)
+            toast_window.attributes("-topmost", True)
+            toast_window.attributes("-alpha", 0.95)
+            toast_label = tk.Label(
+                toast_window,
                 text="",
                 bg=bg,
                 fg=fg,
@@ -674,9 +690,14 @@ class WIMTool:
                 padx=px(12),
                 pady=px(5),
             )
-            self._toast_label.pack(fill=tk.BOTH, expand=True)
+            toast_label.pack(fill=tk.BOTH, expand=True)
+            self._toast_window = toast_window
+            self._toast_label = toast_label
 
-        self._toast_label.config(text=msg, bg=bg, fg=fg)
+        if toast_window is None or toast_label is None:
+            return
+
+        toast_label.config(text=msg, bg=bg, fg=fg)
 
         try:
             self.root.update_idletasks()
@@ -687,19 +708,19 @@ class WIMTool:
 
             margin_x = px(10)
             margin_y = px(4)
-            self._toast_window.update_idletasks()
+            toast_window.update_idletasks()
             try:
                 bw = max(px(200), root_w - margin_x * 2)
-                bh = self._toast_label.winfo_reqheight() + px(6)
+                bh = toast_label.winfo_reqheight() + px(6)
             except Exception:
                 bw = root_w - margin_x * 2
                 bh = px(32)
             x = root_x + margin_x
             y = root_y + root_h - bh - margin_y - px(24)
-            self._toast_window.geometry(f"{bw}x{bh}+{x}+{y}")
-            self._toast_window.deiconify()
+            toast_window.geometry(f"{bw}x{bh}+{x}+{y}")
+            toast_window.deiconify()
             try:
-                self._toast_window.lift()
+                toast_window.lift()
             except Exception:
                 pass
         except Exception:
@@ -724,8 +745,9 @@ class WIMTool:
 
     def _get_icon_path(self):
         """获取图标文件路径（兼容冻结环境）"""
-        if getattr(sys, 'frozen', False):
-            return os.path.join(sys._MEIPASS, "wim.ico")
+        if getattr(sys, "frozen", False):
+            meipass = getattr(sys, "_MEIPASS", _root_dir)
+            return os.path.join(meipass, "wim.ico")
         return os.path.join(self.base_dir, "resources", "wim.ico")
 
     def _set_icon(self, window):
@@ -742,14 +764,15 @@ class WIMTool:
 
     def _switch_to_bcd_tab(self):
         self.tab_control.select(2)
-        if self._boot_mgr_loaded and hasattr(self, 'boot_mgr'):
-            self.boot_mgr._refresh_bcd_list()
+        boot_mgr = self.boot_mgr if self._boot_mgr_loaded else None
+        if boot_mgr is not None:
+            boot_mgr._refresh_bcd_list()
 
-    def _get_or_create_boot_manager(self):
+    def _get_or_create_boot_manager(self) -> Optional["BootManager"]:
         """获取或创建BootManager实例"""
         if not self._boot_mgr_loaded:
-            self._load_boot_mgr_tab()
-        return getattr(self, 'boot_mgr', None)
+            return self._load_boot_mgr_tab()
+        return self.boot_mgr
 
     # ===========================================================
     # 自动更新相关
@@ -757,7 +780,7 @@ class WIMTool:
     def _on_check_update_clicked(self):
         """「检查更新」按钮的点击处理"""
         if self.update_checker is None:
-            messagebox.showinfo("检查更新", "自动更新模块未就绪", parent=self.master)
+            messagebox.showinfo("检查更新", "自动更新模块未就绪", parent=self.root)
             return
         if self.update_checker.is_busy():
             self._toast("正在处理上次的请求，请稍候...", "warning")
@@ -804,7 +827,7 @@ class WIMTool:
                             pass
                         sys.exit(0)
                     else:
-                        messagebox.showerror("更新失败", "无法启动更新脚本，请手动下载新版本。", parent=self.master)
+                        messagebox.showerror("更新失败", "无法启动更新脚本，请手动下载新版本。", parent=self.root)
 
                 self.root.after(2200, _do_exit_and_update)
             else:

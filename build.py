@@ -37,30 +37,12 @@ MANIFEST_FILE = SOURCE_DIR / "resources" / "wimtool.manifest"
 SRC_DIR = SOURCE_DIR / "src"
 
 # 版本信息（从 app_version.py 统一读取，改版本号请修改 app_version.py）
-import importlib.util as _imp_util
-_app_ver_spec = _imp_util.spec_from_file_location(
-    "app_version", SRC_DIR / "app_version.py"
-)
-_app_ver_mod = _imp_util.module_from_spec(_app_ver_spec)
-_app_ver_spec.loader.exec_module(_app_ver_mod)
-VERSION = _app_ver_mod.VERSION
-VERSION_STR = _app_ver_mod.VERSION_STR
+import runpy as _runpy
+_app_ver_ns = _runpy.run_path(str(SRC_DIR / "app_version.py"))
+VERSION = _app_ver_ns["VERSION"]
+VERSION_STR = _app_ver_ns["VERSION_STR"]
 APP_VERSION_FILE = SRC_DIR / "app_version.py"
-del _imp_util, _app_ver_spec, _app_ver_mod
-
-
-def bump_version():
-    """自动递增版本号（末位 +1）并写回 app_version.py"""
-    new_version = VERSION[:-1] + (VERSION[-1] + 1,)
-    new_str = ".".join(str(x) for x in new_version)
-    content = APP_VERSION_FILE.read_text(encoding="utf-8")
-    content = content.replace(
-        f"VERSION = {VERSION}",
-        f"VERSION = {new_version}",
-    )
-    APP_VERSION_FILE.write_text(content, encoding="utf-8")
-    print(f"版本号: {VERSION_STR} -> {new_str}")
-    return new_version, new_str
+del _runpy, _app_ver_ns
 
 PRODUCT_NAME = "映像编辑辅助工具"
 COMPANY_NAME = "XuGuihong"
@@ -300,7 +282,7 @@ def build():
     print("=" * 60)
 
     global VERSION, VERSION_STR
-    VERSION, VERSION_STR = bump_version()
+    print(f"当前版本号: {VERSION_STR}（如需修改请编辑 wimtool/src/app_version.py）")
     
     # 清理旧的构建文件
     if BUILD_DIR.exists():

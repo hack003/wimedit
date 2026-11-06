@@ -1,0 +1,17 @@
+{
+  "include": [
+    "wim_tool.py",
+    "build.py",
+    "wimtool/src"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "build_output",
+    "wimtool/data"
+  ],
+  "extraPaths": [
+    "wimtool/src"
+  ],
+  "pythonVersion": "3.8",
+  "typeCheckingMode": "basic"
+}

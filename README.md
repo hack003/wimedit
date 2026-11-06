@@ -136,7 +136,7 @@ python wim_tool.py
 ```
 code-映像编辑辅助工具-v1.0.3.26/
 ├── wim_tool.py                  # 主入口：窗口、Tab 容器、日志面板、横幅通知、关于页
-├── build.py                     # PyInstaller 单文件打包脚本（自动递增版本号）
+├── build.py                     # PyInstaller 单文件打包脚本
 ├── build.bat                    # 打包入口（双击运行，可选）
 ├── wimtool/                     # 源码与资源根目录
 │   ├── src/
@@ -170,7 +170,7 @@ code-映像编辑辅助工具-v1.0.3.26/
 
 双击根目录 `build.bat`（或执行 `python build.py`）即可打包：
 
-1. 自动把 `wimtool/src/app_version.py` 中版本号末位 +1
+1. 读取 `wimtool/src/app_version.py` 中的版本号（**需手动修改，打包脚本不再自动 +1**）
 2. 清理 `build_output/` 并生成 `version.txt`（写入文件属性中的版本 / 版权 / 编译时间）
 3. 收集 `wimtool/data/` 与 `wimtool/resources/wim.ico` 作为内嵌资源，生成 `wim_tool.spec`
 4. 调用 PyInstaller 输出单文件 `D:\WIMTool.exe`
