@@ -6,7 +6,7 @@
 """
 
 # 程序版本号（元组形式，用于比较）
-VERSION = (1, 0, 3, 27)
+VERSION = (1, 0, 3, 28)
 
 # 程序版本号（字符串形式，用于显示）
 VERSION_STR = ".".join(str(x) for x in VERSION)

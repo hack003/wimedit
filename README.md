@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D4.svg)](https://www.microsoft.com/windows)
-[![Version](https://img.shields.io/badge/Version-1.0.3.27-green.svg)](#)
+[![Version](https://img.shields.io/gitee/v/release/hack003/wimedit?gitee=https://gitee.com&label=Version)](https://gitee.com/hack003/wimedit/releases)
 
 **映像编辑辅助工具** 是一款面向 Windows 系统维护人员的小型工具集，聚焦 WIM 映像的日常编辑处理，并附带 PE 启动测试与 BCD 引导管理功能。基于 **Python 3 + tkinter** 开发，内置 DISM、wimlib、7-Zip 等组件，打包为单文件 exe，免安装、开箱即用。
 
