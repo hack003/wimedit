@@ -10,8 +10,10 @@ build_output/
 dist/
 *.spec
 
-# 备份产物
-code-*.zip
+# 测试脚本（不入库，均以下划线开头）
+tests/
+_*.py
+_*.bat
 
 # 编辑器
 .vscode/

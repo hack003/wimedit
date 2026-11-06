@@ -11,7 +11,8 @@ import threading
 from tkinter import ttk, messagebox
 from datetime import datetime
 
-_src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
+_root_dir = os.path.dirname(os.path.abspath(__file__))
+_src_dir = os.path.join(_root_dir, "wimtool", "src")
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
@@ -38,7 +39,7 @@ class WIMTool:
         self.root.minsize(px(540), px(470))
         self.root.resizable(True, True)
 
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.base_dir = os.path.join(_root_dir, "wimtool")
         self.data_dir = os.path.join(self.base_dir, "data")
         self.wimlib_exe = os.path.join(self.data_dir, "Wimlib", "wimlib-imagex.exe")
         self.dism_exe = os.path.join(self.data_dir, "DISM", "dism.exe")

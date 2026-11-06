@@ -10,10 +10,13 @@ import shutil
 import subprocess
 from pathlib import Path
 
-# 项目根目录
+# 项目根目录（build.py 所在目录）
 PROJECT_DIR = Path(__file__).parent.absolute()
 BUILD_DIR = PROJECT_DIR / "build_output"
 SPEC_FILE = BUILD_DIR / "wim_tool.spec"
+
+# 源码与资源根目录
+SOURCE_DIR = PROJECT_DIR / "wimtool"
 
 # 输出目录设置为 D 盘
 DIST_DIR = Path("D:/")
@@ -22,16 +25,16 @@ DIST_DIR = Path("D:/")
 MAIN_SCRIPT = PROJECT_DIR / "wim_tool.py"
 
 # 需要打包的 data 文件夹
-DATA_DIR = PROJECT_DIR / "data"
+DATA_DIR = SOURCE_DIR / "data"
 
 # 输出文件名
-APP_NAME = "映像编辑辅助工具"
+APP_NAME = "WIMTool"
 
 # Manifest 文件（请求管理员权限 + Windows 版本兼容声明 + 长路径支持 + 通用控件 v6 视觉样式）
-MANIFEST_FILE = PROJECT_DIR / "resources" / "wimtool.manifest"
+MANIFEST_FILE = SOURCE_DIR / "resources" / "wimtool.manifest"
 
 # 源码目录
-SRC_DIR = PROJECT_DIR / "src"
+SRC_DIR = SOURCE_DIR / "src"
 
 # 版本信息（从 app_version.py 统一读取，改版本号请修改 app_version.py）
 import importlib.util as _imp_util
@@ -63,7 +66,7 @@ PRODUCT_NAME = "映像编辑辅助工具"
 COMPANY_NAME = "XuGuihong"
 COPYRIGHT = "Copyright © 2026 XuGuihong. All rights reserved."
 INTERNAL_NAME = "WIMTool"
-ORIGINAL_FILENAME = "映像编辑辅助工具.exe"
+ORIGINAL_FILENAME = "WIMTool.exe"
 
 
 def check_dependencies():
@@ -117,7 +120,7 @@ def collect_data_files():
             data_files.append((str(file_path), dest_folder))
     
     # 添加 wim.ico 到打包数据（放在根目录）
-    icon_file = PROJECT_DIR / "resources" / "wim.ico"
+    icon_file = SOURCE_DIR / "resources" / "wim.ico"
     if icon_file.exists():
         data_files.append((str(icon_file), "."))
         print("✓ 已添加 wim.ico 到打包数据")
@@ -229,7 +232,7 @@ exe = EXE(
     version=r'{(BUILD_DIR / "version.txt").as_posix()}',
     codesign_identity=None,
     entitlements_file=None,
-    icon=r'{(PROJECT_DIR / "resources" / "wim.ico").as_posix()}',
+    icon=r'{(SOURCE_DIR / "resources" / "wim.ico").as_posix()}',
 )
 '''
     
@@ -393,12 +396,12 @@ def clean_temp_files():
         print(f"✓ 已删除临时工作目录: {work_dir}")
         cleaned = True
     
-    # 清理 __pycache__ 目录
-    pycache_dir = PROJECT_DIR / "__pycache__"
-    if pycache_dir.exists():
-        shutil.rmtree(pycache_dir)
-        print(f"✓ 已删除 Python 缓存目录: {pycache_dir}")
-        cleaned = True
+    # 清理 __pycache__ 目录（根目录 + 源码目录）
+    for pycache_dir in (PROJECT_DIR / "__pycache__", SRC_DIR / "__pycache__"):
+        if pycache_dir.exists():
+            shutil.rmtree(pycache_dir)
+            print(f"✓ 已删除 Python 缓存目录: {pycache_dir}")
+            cleaned = True
     
     # 清理 spec 文件
     if SPEC_FILE.exists():

@@ -47,7 +47,7 @@
 
 ### 方式一：使用发布版（推荐）
 
-前往 **[Gitee Releases](https://gitee.com/hack003/wim-tools/releases)** 下载最新版 `映像编辑辅助工具.exe`，双击运行即可（会自动请求管理员权限）。
+前往 **[Gitee Releases](https://gitee.com/hack003/wim-tools/releases)** 下载最新版 `WIMTool.exe`，双击运行即可（会自动请求管理员权限）。
 
 程序为单文件分发，`data` 目录已打包进 exe，运行时自动解压到临时目录。
 
@@ -59,7 +59,7 @@ cd wim-tools
 python wim_tool.py
 ```
 
-> 源码运行时请保持 `data/`、`resources/` 与 `src/` 目录的相对位置不变，程序按相对路径加载 DISM、wimlib、7-Zip 与图标资源。
+> 源码运行时请保持根目录下 `wimtool/` 的相对位置不变，程序按相对路径加载 `wimtool/src`、`wimtool/data` 与 `wimtool/resources` 资源。
 
 ---
 
@@ -127,7 +127,7 @@ python wim_tool.py
 - **关于软件**：显示软件名称、版本号、联系方式，内置免责声明，并提供 `检查更新` 按钮
 - **日志面板**：底部 `日志` 按钮切换日志视图；顶部滑动条选择级别（ERROR / WARNING / INFO / DEBUG），切换后自动回刷历史日志；支持右键复制、全选、清空
 - **日志配置**：`resources/log_config.ini` 可为各模块（mount / unmount / optimize / info / system）单独设置级别
-- **在线更新**：读取远端 `Version.json`（版本号、下载地址、更新日志、强制更新标记），下载新 exe 后由临时脚本替换并重启
+- **在线更新**：直接读取 Gitee Releases（`tag_name` 作为版本号、`body` 作为更新说明、`assets` 中的 exe 作为下载地址），下载新 exe 后由临时脚本替换并重启
 
 ---
 
@@ -135,48 +135,50 @@ python wim_tool.py
 
 ```
 code-映像编辑辅助工具-v1.0.3.26/
-├── wim_tool.py              # 主入口：窗口、Tab 容器、日志面板、横幅通知、关于页
-├── src/
-│   ├── wim_editor.py        # 镜像编辑模块（DISM 挂载 / wimlib 优化与属性）
-│   ├── boot_test.py         # 启动测试模块（PE 加入启动菜单 / ISO 提取 / IsBoot 管理）
-│   ├── boot_manager.py      # 引导管理模块（BCD 枚举 / 编辑 / 删除 / 修复）
-│   ├── boot_add_menu.py     # 添加引导菜单对话框（bcdedit 建项 + ramdisk 配置）
-│   ├── boot_utils.py        # 引导环境检测、ESP 挂载、离线系统识别、boot.sdi 处理
-│   ├── file_searcher.py     # 通用文件搜索对话框（按盘符 + 深度扫描）
-│   ├── logger_utils.py      # 统一日志管理（四级 + 模块级覆盖 + 缓冲回刷）
-│   ├── dpi_utils.py         # DPI 缩放工具（px / font / geometry 统一换算）
-│   ├── update.py            # 在线更新（版本检查 / 下载 / 自动替换）
-│   └── app_version.py       # 统一版本号（改版本号只需改这一处）
-├── data/                    # 内置组件（打包进 exe）
-│   ├── DISM/                # DISM 及依赖库 + zh-CN 语言资源
-│   ├── Wimlib/              # wimlib-imagex.exe + libwim-15.dll
-│   ├── 7Z/                  # 7z.exe + 7z.dll
-│   └── Boot/                # boot.sdi / bootmgr / bootmgfw_x64.efi / 字体等启动文件
-├── resources/
-│   ├── Version.json         # 版本信息模板
-│   ├── log_config.ini       # 日志级别配置
-│   ├── wim.ico              # 程序图标
-│   └── wimtool.manifest     # 管理员权限 + 系统兼容性清单
-├── tests/                   # 调试与自检脚本（下划线前缀，非正式单元测试）
-├── build.py                 # PyInstaller 单文件打包脚本（自动递增版本号）
-├── build.bat                # 打包入口（双击运行）
-├── backup.py                # 源码按目录结构打包为 zip
-└── backup.bat               # 备份入口（双击运行）
+├── wim_tool.py                  # 主入口：窗口、Tab 容器、日志面板、横幅通知、关于页
+├── build.py                     # PyInstaller 单文件打包脚本（自动递增版本号）
+├── build.bat                    # 打包入口（双击运行，可选）
+├── wimtool/                     # 源码与资源根目录
+│   ├── src/
+│   │   ├── wim_editor.py        # 镜像编辑模块（DISM 挂载 / wimlib 优化与属性）
+│   │   ├── boot_test.py         # 启动测试模块（PE 加入启动菜单 / ISO 提取 / IsBoot 管理）
+│   │   ├── boot_manager.py      # 引导管理模块（BCD 枚举 / 编辑 / 删除 / 修复）
+│   │   ├── boot_add_menu.py     # 添加引导菜单对话框（bcdedit 建项 + ramdisk 配置）
+│   │   ├── boot_utils.py        # 引导环境检测、ESP 挂载、离线系统识别、boot.sdi 处理
+│   │   ├── file_searcher.py     # 通用文件搜索对话框（按盘符 + 深度扫描）
+│   │   ├── logger_utils.py      # 统一日志管理（四级 + 模块级覆盖 + 缓冲回刷）
+│   │   ├── dpi_utils.py         # DPI 缩放工具（px / font / geometry 统一换算）
+│   │   ├── update.py            # 在线更新（Gitee Releases 版本检查 / 下载 / 自动替换）
+│   │   └── app_version.py       # 统一版本号（改版本号只需改这一处）
+│   ├── data/                    # 内置组件（打包进 exe）
+│   │   ├── DISM/                # DISM 及依赖库 + zh-CN 语言资源
+│   │   ├── Wimlib/              # wimlib-imagex.exe + libwim-15.dll
+│   │   ├── 7Z/                  # 7z.exe + 7z.dll
+│   │   └── Boot/                # boot.sdi / bootmgr / bootmgfw_x64.efi / 字体等启动文件
+│   └── resources/
+│       ├── log_config.ini       # 日志级别配置
+│       ├── wim.ico              # 程序图标
+│       └── wimtool.manifest     # 管理员权限 + 系统兼容性清单
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
 ---
 
 ## 🔧 从源码打包
 
-双击 `build.bat`（或执行 `python build.py`）即可打包：
+双击根目录 `build.bat`（或执行 `python build.py`）即可打包：
 
-1. 自动把 `src/app_version.py` 中版本号末位 +1
+1. 自动把 `wimtool/src/app_version.py` 中版本号末位 +1
 2. 清理 `build_output/` 并生成 `version.txt`（写入文件属性中的版本 / 版权 / 编译时间）
-3. 收集 `data/` 与 `resources/wim.ico` 作为内嵌资源，生成 `wim_tool.spec`
-4. 调用 PyInstaller 输出单文件 `D:\映像编辑辅助工具.exe`
-5. 自动清理 `build_output/work` 与 `__pycache__`
+3. 收集 `wimtool/data/` 与 `wimtool/resources/wim.ico` 作为内嵌资源，生成 `wim_tool.spec`
+4. 调用 PyInstaller 输出单文件 `D:\WIMTool.exe`
+5. 自动清理 `build_output/work` 与根目录、`wimtool/src` 下的 `__pycache__`
 
 **打包依赖**：`pip install pyinstaller`（仅打包时需要，运行不需要）。
+
+**发布与更新**：打包完成后把 `D:\WIMTool.exe` 作为附件上传到 Gitee Releases，发布标签写成版本号（如 `v1.0.3.27`），发布说明填写更新内容。程序端的 `检查更新` 会直接读取该发布，标签号即版本号、说明即更新日志、附件即下载地址。
 
 ---
 

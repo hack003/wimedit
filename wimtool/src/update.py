@@ -2,8 +2,14 @@
 """
 程序自动更新模块
 功能：检查更新、下载新版本、自动替换运行中的程序
-远端 Version.json 字段：
-  latest_version : 3 位版本号，如 "1.0.1"
+
+版本信息来源：Gitee Releases（https://gitee.com/hack003/wim-tools/releases）
+  - 发布标签 tag_name（如 v1.0.3.27）作为版本号
+  - 发布说明 body 作为更新日志
+  - 发布附件 assets 中的 exe 作为下载地址
+
+内部统一信息结构：
+  latest_version : 版本号，如 "1.0.3.27"
   download_url   : 新版本 exe 的下载地址
   update_log     : 更新说明（可选）
   force_update   : 是否强制更新（可选，预留字段）
@@ -42,11 +48,20 @@ if _ssl_context is not None:
     except Exception:
         pass
 
-# 版本信息文件地址（远程）
-VERSION_URL = "http://file.trasen.cn/?download&weblink=4d72af64bb8c871db80872cd895336b1&realfilename=Version.json"
+# Gitee 仓库信息（发布版来源）
+GITEE_OWNER = "hack003"
+GITEE_REPO = "wim-tools"
 
-# 程序下载地址（远程）—— 默认为此；如果 Version.json 中提供了 download_url 则优先用它
-APP_DOWNLOAD_URL = "https://file.trasen.cn/?download&weblink=4e928865c5e4c4c83706882430cb13ca&realfilename=%E6%98%A0%E5%83%8F%E7%BC%96%E8%BE%91%E8%BE%85%E5%8A%A9%E5%B7%A5%E5%85%B7.exe"
+# Gitee Releases API（取最新发布）
+RELEASES_API_URL = (
+    "https://gitee.com/api/v5/repos/" + GITEE_OWNER + "/" + GITEE_REPO + "/releases"
+)
+
+# 发布页地址（供提示信息使用）
+RELEASES_PAGE_URL = "https://gitee.com/" + GITEE_OWNER + "/" + GITEE_REPO + "/releases"
+
+# 发布附件中可执行文件的名称（找不到时退化为匹配 .exe 后缀）
+EXPECTED_ASSET_NAME = "WIMTool.exe"
 
 # 程序版本号（由 app_version.py 统一管理，改版本号请修改 app_version.py）
 from app_version import VERSION_STR as APP_VERSION
@@ -242,28 +257,52 @@ def _download_file(url, save_path, progress_callback=None, referer=None):
 
 
 
+def _normalize_version(raw):
+    """把发布标签统一成纯数字版本号：v1.0.3.27 / 1.0.3.27 / V1.0.3.27 → 1.0.3.27"""
+    text = str(raw or "").strip()
+    if not text:
+        return ""
+    text = text.lstrip("vV").strip()
+    match = re.match(r"\d+(?:\.\d+)*", text)
+    return match.group(0) if match else text
+
+
+def _pick_asset(assets):
+    """从发布附件列表中挑出 exe 下载地址，优先精确名称匹配。"""
+    if not isinstance(assets, list):
+        return ""
+    fallback = ""
+    for asset in assets:
+        if not isinstance(asset, dict):
+            continue
+        name = str(asset.get("name") or "")
+        url = str(asset.get("browser_download_url") or "")
+        if not url:
+            continue
+        if name.casefold() == EXPECTED_ASSET_NAME.casefold():
+            return url
+        if name.lower().endswith(".exe") and not fallback:
+            fallback = url
+    return fallback
+
+
 def _fetch_version_info():
     """
-    从远程下载 Version.json 并解析。
-    兼容两种字段名：
-      "latest_version" 或 "version"
-      "download_url"   或 "download"
-      "update_log"     或 "release_note"
+    从 Gitee Releases 获取最新发布信息，并转换为统一的版本信息结构。
+    只取正式发布（跳过 prerelease），按创建时间倒序。
     """
     try:
-        # 每次请求都加上时间戳参数绕过服务器缓存
         _t = str(int(time.time() * 1000))
-        _sep = "&" if "?" in VERSION_URL else "?"
-        _final_url = VERSION_URL + _sep + "_t=" + _t
-        req = urllib.request.Request(_final_url, headers={
+        url = RELEASES_API_URL + "?page=1&per_page=20&direction=desc&_t=" + _t
+        req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
         })
-        response = urllib.request.urlopen(req, timeout=15, context=_ssl_context)
+        response = urllib.request.urlopen(req, timeout=20, context=_ssl_context)
         data = response.read()
 
-        # 尝试多种编码解析
         text = None
         for enc in ["utf-8", "utf-8-sig", "gbk", "latin-1"]:
             try:
@@ -274,28 +313,54 @@ def _fetch_version_info():
         if text is None:
             text = data.decode("utf-8", errors="replace")
 
-        # 去掉可能出现的 BOM / 前后空白
         text = text.strip()
-
-        # 如果服务器返回的是 HTML 而不是 JSON（比如下载页的跳转提示）
-        # 这里给出更明确的错误，而不是报 JSON 解析错误
         if text.startswith("<"):
             raise RuntimeError(
-                "服务器返回的不是 JSON，而是网页。\n"
-                "请确认 Version.json 的 URL 是『直接返回 JSON 文件内容』的直链，"
-                "而不是下载页面/跳转页。"
+                "Gitee 接口返回的是网页而不是 JSON，可能是接口地址变更或访问受限。\n"
+                "请手动前往发布页下载：" + RELEASES_PAGE_URL
             )
 
-        version_info = json.loads(text)
-        if not isinstance(version_info, dict):
-            raise RuntimeError("Version.json 内容不是合法的对象结构")
-        return version_info
+        releases = json.loads(text)
+        if not isinstance(releases, list):
+            raise RuntimeError("Gitee Releases 接口返回内容格式异常")
+
+        latest = None
+        for release in releases:
+            if not isinstance(release, dict):
+                continue
+            if release.get("prerelease"):
+                continue
+            if _normalize_version(release.get("tag_name")):
+                latest = release
+                break
+
+        if latest is None:
+            raise RuntimeError(
+                "Gitee 上暂未找到可用的正式发布版本。\n"
+                "请确认已在发布页上传新版本：" + RELEASES_PAGE_URL
+            )
+
+        download_url = _pick_asset(latest.get("assets"))
+        if not download_url:
+            raise RuntimeError(
+                "最新发布（" + str(latest.get("tag_name")) + "）中未找到 exe 附件。\n"
+                "请前往发布页确认附件已上传：" + RELEASES_PAGE_URL
+            )
+
+        return {
+            "latest_version": _normalize_version(latest.get("tag_name")),
+            "download_url": download_url,
+            "update_log": latest.get("body") or "",
+            "force_update": False,
+            "release_name": latest.get("name") or "",
+            "release_time": latest.get("created_at") or "",
+        }
     except json.JSONDecodeError as e:
-        raise RuntimeError("Version.json 内容不是合法 JSON：" + str(e))
+        raise RuntimeError("Gitee Releases 接口返回内容不是合法 JSON：" + str(e))
     except RuntimeError:
         raise
     except Exception as e:
-        raise RuntimeError("获取版本信息失败：" + str(e))
+        raise RuntimeError("获取 Gitee 发布信息失败：" + str(e))
 
 
 def check_update():
@@ -305,12 +370,9 @@ def check_update():
     """
     info = _fetch_version_info()
 
-    # 兼容多种字段名
     remote_version = info.get("latest_version")
     if not remote_version:
-        remote_version = info.get("version")
-    if not remote_version:
-        raise RuntimeError("Version.json 中缺少版本号字段（latest_version 或 version）")
+        raise RuntimeError("Gitee 发布信息中缺少版本号（发布标签 tag_name 为空）")
 
     current = _version_tuple(APP_VERSION)
     remote = _version_tuple(remote_version)
@@ -323,8 +385,8 @@ def _get_app_exe_path():
     """获取当前运行的可执行文件路径"""
     if getattr(sys, "frozen", False):
         return sys.executable
-    base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, "映像编辑辅助工具.exe")
+    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "WIMTool.exe")
 
 
 def _generate_updater_script(new_exe_path, old_exe_path, temp_dir):
@@ -462,7 +524,7 @@ def download_and_apply_update(progress_callback=None, log_callback=None):
             except Exception:
                 pass
 
-    _log("正在获取远程版本信息...")
+    _log("正在从 Gitee Releases 获取版本信息...")
     has_update, latest_version, info = check_update()
     if not has_update:
         return {
@@ -472,16 +534,17 @@ def download_and_apply_update(progress_callback=None, log_callback=None):
         }
     _log("发现新版本：" + str(latest_version) + "，开始下载...")
 
-    # 优先使用 Version.json 中提供的 download_url，否则用默认地址
-    url = info.get("download_url") or info.get("download") or APP_DOWNLOAD_URL
-    # 去掉用户可能手贱加的反引号
+    # 使用 Gitee 发布附件中的下载地址
+    url = info.get("download_url")
+    if not url:
+        raise RuntimeError("Gitee 发布信息中缺少下载地址，请前往发布页手动下载：" + RELEASES_PAGE_URL)
     url = str(url).strip().strip("`").strip("'").strip('"')
 
     # 准备临时下载目录（放到系统 %TEMP%，避免污染程序目录）
     system_temp = os.environ.get("TEMP") or os.environ.get("TMP") or os.path.dirname(_get_app_exe_path())
     temp_dir = os.path.join(system_temp, "_wim_update_temp_" + str(int(time.time())))
     os.makedirs(temp_dir, exist_ok=True)
-    new_exe = os.path.join(temp_dir, "映像编辑辅助工具.new.exe")
+    new_exe = os.path.join(temp_dir, "WIMTool.new.exe")
 
     try:
         _download_file(url, new_exe, progress_callback=progress_callback)
